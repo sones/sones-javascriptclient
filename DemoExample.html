@@ -1,0 +1,25 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+		<script type="text/javascript" src="DemoExample.js"></script>
+		<script type="text/javascript" src="source/sones-javascriptclient.js"></script>
+		<script type="text/javascript">
+			addDependencies();
+		</script>
+		<title>DemoExample</title>
+	</head>
+	<body>
+		<div id="header" style="border-bottom: 2px solid #98C000; padding-bottom: 10px;">
+  	    <img src="logo/company_logo.png" /><h3 style="margin-bottom: 10px;">JavaScript - GraphDB Client Example</h3>
+    	<a href="http://www.sones.com"><pre style="text-align:center;">(c)sones GmbH</pre></a>
+		</div>
+		<pre style="margin:15px auto auto 15px">Just enter any GQL Statement below - for help click <a href="http://developers.sones.de/category/gql/">sones Cheatsheet</a></pre >
+		<input type="text" id="gql" size="100" style="margin:15px auto auto 15px"/>
+		<input type="button" value="Submit Query" name="btnSubmit" onclick="DemoExample(document.getElementById('gql').value);" style="margin:15px auto auto 15px"><br/>
+			<div id="output" style="margin:15px auto auto 15px">
+			</div>
+			
+	
+	</body>
+</html>
