@@ -52,7 +52,14 @@ function GraphDBClient(myHost,myUsername,myPassword,myPort){
 	this.Password = myPassword;
 	
 	if(myPort == undefined){
-		this.Port = '9975';	
+		if (window.location.port != "")
+		{
+			this.Port= window.location.port
+		}
+		else
+		{
+			this.Port = "80";
+		}
 	} 
 	else{
 		this.Port = myPort;
