@@ -29,9 +29,9 @@
 
 //Add dependencies
 function addDependencies() {
-	addJavascript('lib/jquery/jquery-1.4.2.js');
+	addJavascript('lib/jquery/jquery-1.5.2.js');
 	addJavascript('lib/jquery/jquery.base64.js');
-	addJavascript('lib/jquery/jquery.urlencode.js');
+	//addJavascript('lib/jquery/jquery.urlencode.js');
 };
 
 //function to execute the query
@@ -86,7 +86,7 @@ GraphDBClient.prototype = {
      * @return QueryResult Object if the Response was Successful - null if not!
      */
 	Query : function(myGQLQuery){
-		encodedQuery = $.URLEncode(myGQLQuery);
+		encodedQuery = myGQLQuery //$.URLEncode(myGQLQuery);
 		result = new GQLRestRequest(this.Url+ encodedQuery,this.Username,this.Password);
 		
 		if(result.status == "200"){
