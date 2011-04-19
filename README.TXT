@@ -22,14 +22,14 @@ History:
 	DemoExample
 		- simple javascript-pages to demonstrate the lib - with ajax support
 		- use with the open source version 1.1, cause of the default port and credentials 
-		- webshell like in and output (just not like a shell and parsed output) ;)
+		- webshell like in and output (just not like a shell - parsed output) ;)
 		
 	!!!IMPORTANT!!!
 		- because of the "Same-Origin-Policy" you will need to set up your server or use a proxy
 		   ->there is a useful development proxy named PortResourceProxy 
  		     (https://github.com/Schille/PortResourceProxy) - you can just set up "ResourceMap" and start to 
 		     develop
-		- you have to include "jquery-1.4.2.js","jquery.base64.js","jquery.urlencode" - these
+		- you have to include "jquery-1.4.2.js" and "jquery.base64.js" - these
 		  files a not part of the Javascript Client (http://jquery.com/) and essential to the Javascript Client
 
 		
