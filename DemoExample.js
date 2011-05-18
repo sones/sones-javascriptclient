@@ -18,101 +18,148 @@
  */
 
 /**
- * DemoExample: to show the usage of the sones-javascriptclient for GraphDB
+ * DemoExample: to show the usage of the sones-javascriptclient for GraphDB(2.0)
  * Please see the README.txt
  * 
  * @author Michael (Schille) Schilonka 
  */
-
+var cont = "<pre>";
 
 function DemoExample(gql){
-	var result = doQuery(gql)
+	var QueryResult = doQuery(gql)
+	var QueryMeta = QueryResult.QueryMeta;
+	var VertexViewList = QueryResult.VertexViewList;
 	var div = document.getElementById("output");
 	
-	if(result.status != 503 && result.status != 0){
+	if (true) {
+	
 		
-		var cont =  "<pre>";
-        // gql string
-        cont += "QueryString: " + result.getQueryString() + "<br/>";
-      	// result type
-		cont +=  "ResultType: <b>" + result.getResultType() + "</b><br/>";
-        //duration in ms
-        cont += "Duration: " + result.getDuration() + "<br/>";
-        //warnings
-        cont += "Warnings:<br/>";
-		var warnings = result.getWarnings();
-		if(warnings != ''){
-			
+		// gql string
+		cont += "QueryString: " + QueryMeta.getQueryString() + "<br/>";
+		// result type
+		cont += "ResultType: <b>" + QueryMeta.getResultType() + "</b><br/>";
+		//duration in ms
+		cont += "Duration: " + QueryMeta.getDuration() + "<br/>";
 		
-		for(warning in warnings){
-			warning = warnings[warning];
-			cont += "&#160;&#160;" + warning.getID() + "&#160;&#160;" + warning.getMessage() + "<br/>"; 
-		}
-		}
+		
 		//errors
-		cont += "Errors:<br/>";
+		cont += "Errors:" + QueryMeta.getError() + "<br/>";
 		
-		var errors = result.getErrors();
-		if(errors != ''){
-			
 		
-		for(error in errors){
-			error = errors[error];
-			cont += "&nbsp&nbsp" + error.getID() + "&nbsp&nbsp" + error.getMessage() + "<br/>"; 
-		}
-		}
+		
 		//vertices
 		cont += "Vertices:<br/>";
-		var vertices = result.getVertices();
-		if(vertices != ''){
+		i = 0;
+		$.each(VertexViewList,function(){
+		cont += printVertex(this, 0, i);
+		i++;
+		});
 			
-		
-		for(vertex in vertices){
-			var v = vertices[vertex];
-			if(v.ObjectType == 'Vertex'){
-				cont += printVertex(v,1);
-			}
-			
-		}
-		}
 	}
-	else{
+	else {
 		cont = "<b>Service unavailable!</b>"
 	}
+	cont += "</pre>";
 	div.innerHTML = cont;
 	document.getElementById("gql").value = "";
 };
 
-function printVertex(myVertex, depth){
+function printVertex(myVertex, depth, i){
 	var tabs = "";
-	var content = "";
+	cont = "";
+	depth++;
+	for (var k = 0; k <= depth; k++){
+	tabs += "&#160;&#160;";
+	};
 	
-	for (var index = 0; index < depth; index++) {
-		tabs += "&nbsp&nbsp";
-	}
-	//sometime occurs an error
-	var attributes = myVertex.getAttributes();
-	for (att in attributes) {
+	cont += tabs + "<div style='border:solid; padding:5px; width:90%'>" + tabs + "<b>Vertex " + i + ":</b></br>" + tabs + "\\<br/>";	
+	cont += tabs + "|<br/>";
+	cont += tabs +  "|Properties:<br/>";	
+	cont += tabs + "|<br/>";	
+	var properties = myVertex.getProperties();
+		if (properties.length != 0) {
+			$.each(properties, function(){
+				cont += "<div style='border:solid 1px, width:90%'>"
+				cont += tabs + "ID: " + this.ID + "<br/>";
+				cont += tabs + "Type: " + this.Type + "<br/>";
+				cont += tabs + "Value: " + this.Value + "<br/>";
+				cont += "</div></br>"
+			});
+		}
+		cont += tabs +  "|<br/>";	
+		cont += tabs +  "|BinaryProperties:<br/>";
+		cont += tabs +  "|<br/>";	
+		var binary = myVertex.getBinaryProperties();
+		if(binary != undefined){
+		$.each(binary,function(){
+			cont += "<div style='border:solid 1px;padding:5px;width:90%'>"
+			cont += tabs + "ID: " + this.ID + "<br/>";
+			cont += tabs + "Content: " + this.Content + "<br/>";
+			cont += "</div></br>"
+			});	
+		}
 		
-		if (attributes[att] instanceof Object) {
-			if (attributes[att].ObjectType == "Edge") {
-				content += tabs + attributes[att] + ":" + "<br/>";
-				targetvertices = attributes[att].getTargetattertex();
-				for (vertex in targetvertices) {
-					printVertex(vertex, depth + 1);
+		cont += tabs +  "|<br/>";	
+		cont += tabs +  "|Edges:<br/>";
+		cont += tabs +  "|has Edges: " + myVertex.hasEdges() + "</br>";	
+		cont += tabs +  "|<br/>";		
+		var single = myVertex.getAllSingleEdges();
+		if(single.length != 0){
+			
+			cont += printSingleEdges(single, tabs, depth);
+		}
+		
+		
+		var hyper = myVertex.getAllHyperEdges();
+		if(hyper.length != 0){
+			$(hyper).each(function(){
+				var sing = this.getSingleEdges();
+				if (sing.length != 0) {
+						cont += "<div style='border:dashed;padding:5px; width:90%'>";
+						cont += tabs + "<b>  ->" + this.Name + "(" + this.type + ")" + "</b><br/>";
+						cont += printSingleEdges(sing, tabs, depth);
+						cont += "</div>";
 				}
-			}
-			if (attributes[att].ObjectType == "ObjectUUID") {
-				content += tabs + att + ":" + attributes[att].getUUID() + "<br/>";
-			}
-			if (attributes[att].ObjectType == "ObjectRevisionID") {
-				content += tabs + att + ":" + attributes[att].TimeStamp + "<br/>";
-			}
-		}
-		else {
-			content += tabs + att + ":" + attributes[att] + "<br/>";
-		}
 				
-	}
-	return content;
-};
+			});
+			 
+			
+		}
+		
+		
+	cont += "</div>";	
+	
+	return cont;
+}
+
+function printSingleEdges(single, tabs,depth){
+	cont = "";
+	$.each(single,function(){
+			var props = this.getProperties();
+			cont += tabs +  "  ->" + this.Name +"(" + this.type + ")"+ "<br/>";
+		 	cont += "<div>"
+			cont += tabs +  "     \\<br/>";	
+			cont += tabs +  "     |<br/>";	
+			if (props != undefined) {
+				if (props.length != 0) {
+					$.each(properties, function(){
+						cont += "<div style='border:dotted 1px;width:90%'>"
+						cont += tabs + tabs + "ID: " + this.ID + "<br/>";
+						cont += tabs + tabs + "Type: " + this.Type + "<br/>";
+						cont += tabs + tabs + "Value: " + this.Value + "<br/>";
+						cont += "</div></br>"
+					});
+				}
+				
+			}
+				
+				cont += printVertex(this.getTargetVertex(), depth++, 0);
+				
+				cont += "</div></br>";
+				
+			
+			});
+			return cont;
+}
+
+
