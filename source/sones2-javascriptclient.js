@@ -1,8 +1,8 @@
 /*
- * sones GraphDB - OpenSource Graph Database - http://www.sones.com
+ * sones GraphDB(v2.0) - OpenSource Graph Database - http://www.sones.com
  * Copyright (C) 2007-2010 sones GmbH
  *
- * This file is part of sones GraphDB OpenSource Edition.
+ * This file is part of sones GraphDB(v2.0) Community Edition.
  *
  * sones GraphDB OSE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
