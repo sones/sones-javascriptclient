@@ -18,7 +18,7 @@
  */
 
 /**
- * GraphDB Javascript Client
+ * GraphDB(2.0) Javascript Client
  * This client depends on:jquery-1.5.2.js, jquery.base64.js, jquery.urlencode.js
  * You have to include these files to use the client
  * !!!Please mind the Same-Origin-Policy of the browser!!!
@@ -69,7 +69,7 @@ function GraphDBClient(myHost,myUsername,myPassword,myPort){
 		this.Port = myPort;
 	}
 	
-	this.UriTemplate = 'gql?';
+	this.UriTemplate = 'gql';
 	this.Url = this.setUriFormat(this.Host,this.Port,this.UriTemplate);
 	
 };
@@ -88,7 +88,7 @@ GraphDBClient.prototype = {
      */
 	Query: function(myGQLQuery){
 		//encodedQuery = $.URLEncode(myGQLQuery);
-		result = new GQLRestRequest(this.Url + myGQLQuery, this.Username, this.Password);
+		result = new GQLRestRequest(this.Url, myGQLQuery, this.Username, this.Password);
 		return GenerateQueryResult(result);
 	},
 	/**
@@ -102,24 +102,20 @@ GraphDBClient.prototype = {
 };
 
 //RESTful request to the GraphDB 
-function GQLRestRequest(myRestUri,myUsername,myPassword){
+function GQLRestRequest(myRestUri, myGQLString,myUsername,myPassword){
 	this.RestUri = myRestUri;
 	
 	var auth = 'Basic '+ $.base64Encode(myUsername+':'+myPassword);
 	
 	
-	this.Verb = 'GET';
-	this.AcceptType = 'application/xml';
+	
 	 
-	 jqxhr = $.ajax({
+	 var jqxhr = $.ajax({
     	url : this.RestUri,
-    	method : this.Verb,
+    	type : 'POST',
 		cache: false,
         async: false,
-        timeout: 0,
-		username : this.Username,
-		password : this.Password,
-		accepts : 'text/xml',
+        data: myGQLString,
 		beforeSend: function(xhr){
 			xhr.setRequestHeader('Accept','application/xml');
 			xhr.setRequestHeader('Authorization',auth);
@@ -143,9 +139,9 @@ function GenerateQueryResult(resultxml){
 		resulttype = $(result).find("Query").attr("ResultType");
 		
 		var ResultMeta = new QueryMeta(language, query, error, duration, resulttype);
-		var VertexViewList = ParseVertices($(result).children().children()[1]);
+		var VertexViews = ParseVertices($(result).children().children()[1]);
 		
-		queryResult = new QueryResult(VertexViewList, ResultMeta);
+		queryResult = new QueryResult(VertexViews, ResultMeta);
 		return queryResult;
 	}
 	return undefined;
@@ -179,7 +175,7 @@ function ParseVertex(myVertexView){
 				binaryproperties = parseBinaryProperties(this);
 			}
 			if (this.tagName == 'Edges') {
-				edges = parseEdge(this);				
+				edges = parseEdges(this);				
 			}
 			
 		});
@@ -189,55 +185,98 @@ function ParseVertex(myVertexView){
 //Parser
 function parseProperties(myPropertyList){
 	var properties = new Array()
-	var m = 0;
+	k = 0;
 	$(myPropertyList).children().each(function(){	
 		id = $(this).find('ID').text();
 		type = $(this).find('Type').text();
 		value = $(this).find('Value').text();
-		properties[m] =  new Property(id, type, value);
-	m++;
+		properties[k] =  new Property(id, type, value);
+		k++;
 	});
 	return properties;	
 };
 //Parser
 function parseBinaryProperties(myBinaryPropertyList){
 	var binaryproperties = new Array()
-	var i = 0;
+	k = 0;
 	$(myBinaryPropertyList).children().each(function(){	
 		id = $(this).find('ID').text();
 		content = $(this).find('Content').text();
-		binaryproperties[i] = new BinaryProperty(id,content);
-		i++;
+		binaryproperties[k] = new BinaryProperty(id,content);
+		k++
 	});
 	return binaryproperties;	
 };
 //Parser
-function parseEdge(myEdges){
-	var edgetupel = new Array()
-	var a = 0;
-	$(myEdges).children().each(function(){	
-		name = $(this).find('Name').text();
-		edge = $(this).find('Edge');
-		$(edge).children().each(function(){	
-			if (this.tagName == 'CountOfProperties') {
-				countofproperties = $(this).text();
-			}
-			if (this.tagName == 'Properties') {
-				edgeproperties = parseProperties(this);
-			}
-			if (this.tagName == 'VertexViewList') {
-				targetVertices = ParseVertices(this);			
-			}
-		});
-		edgetupel[a] = new Edge(name,countofproperties,edgeproperties,targetVertices);
-		a++;
-		});
+function parseEdges(myEdges){
 	
-	return edgetupel;
+	var edges = new Array();	
+	k = 0;
+	$(myEdges).children().each(function(){	
+	
+		type = $(this).attr("xsi:type");
+	
+		if(type == 'HyperEdgeView'){
+			name = $(this).find("Name").text();
+			edges[k] = parseHyperEdge(this);
+			k++
+		}
+		
+		if(type == 'SingleEdgeView'){
+			name = $(this).find("Name").text();
+			edges[k] = parseSingleEdge(this);
+			k++;
+		}
+				
+		});
+		
+			
+	return edges;
 
 };
-//---Parser---
 
+function parseSingleEdge(mySingleEdge){
+	var name = $(mySingleEdge).find("Name").text();
+	var prop = $(mySingleEdge).children();
+	if (prop != undefined) {
+		$.each(prop, function(){
+			if (this.tagName == 'Properties') {
+				properties = parseProperties(this);
+			}
+			if (this.tagName == 'BinaryProperties') {
+				binaryproperties = parseBinaryProperties(this);
+			}
+			if (this.tagName == 'TargetVertex') {
+				targetvertex = ParseVertex(this);
+			}
+			
+		});
+		return new SingleEdge(name, properties, targetvertex);
+	}
+}
+
+function parseHyperEdge(myHyperEdge){
+	name = $(myHyperEdge).find("Name").text();
+	var singleEdges = new Array();
+	var prop = $(myHyperEdge).children();
+	var k = 0;
+	if (prop != undefined) {
+		$.each(prop, function(){
+			if (this.tagName == 'Properties') {
+				properties = parseProperties(this);
+			}
+			if (this.tagName == 'SingleEdge') {
+				singleEdges[k] = parseSingleEdge(this);
+				k++;
+			}
+			
+		});
+		return new HyperEdge(name, properties, singleEdges);
+	}
+}
+//---Parser End---
+
+//IGraphElements
 function QueryResult(myVertexViewList,myQueryMeta){
 	this.VertexViewList = myVertexViewList;
 	this.QueryMeta = myQueryMeta;
@@ -252,25 +291,21 @@ QueryResult.prototyp = {
 };
 
 
-function Edge(myEdgeName,myCountOfProperties,myEdgeProperties,myTargetVertices){
-	
+function HyperEdge(myEdgeName,myEdgeProperties,mySingleEdges){
+	this.type = "HyperEdge";
 	this.Name = myEdgeName;
-	this.CountOfProperties = myCountOfProperties;
-	
+		
 	if(!$.isEmptyObject(myEdgeProperties)){
 		this.Properties = myEdgeProperties;
 	}
-	if(!$.isEmptyObject(myTargetVertices)){
-		this.TargetVertices = myTargetVertices;
+	if(!$.isEmptyObject(mySingleEdges)){
+		this.SingleEdges = mySingleEdges;
 	}	
 	
 };
-Edge.prototype = {
+HyperEdge.prototype = {
 	getName: function(){
 		return this.Name;
-	},
-	getCountOfProperties: function(){
-		return this.CountOfProperties;
 	},
 	hasProperties: function(){
 		if (this.Properties != undefined) {
@@ -290,10 +325,9 @@ Edge.prototype = {
 		});
 		return found;
 	},
-	getProperty: function(myProperty){
+	getPropertyByID: function(myProperty){
 		var proper = undefined;
 		if (this.hasProperty(myProperty)) {
-		
 			$(this.Properties).each(function(){
 				if (this.ID == myProperty) {
 					proper = this
@@ -302,33 +336,48 @@ Edge.prototype = {
 		}
 		return proper;
 	},
-	hasTargetVertices: function(){
-		if (this.TargetVertices != undefined) {
-			return true;
-		}
-		return false;
-	},
-	getTargetVertices: function(){
-		if (this.hasTargetVertices) {
-			return this.TargetVertices;
-		}
-		return undefined;
+	getSingleEdges: function(){
+		return this.SingleEdges;
 	}
 };
 
-function Vertex(myPropertyList,myBinaryPropertyList,myETupelList){
-	
-	if(!$.isEmptyObject(myPropertyList)){
-		this.Properties = myPropertyList;
+function SingleEdge(myEdgeName,myEdgeProperties,myTargetVertex){
+	this.Name = myEdgeName;
+	this.type = "SingleEdge";	
+	if(!$.isEmptyObject(myEdgeProperties)){
+		this.Properties = myEdgeProperties;
 	}
-	if(!$.isEmptyObject(myBinaryPropertyList)){
-		this.BinaryProperties = myBinaryPropertyList;
-	}
-	if(!$.isEmptyObject(myETupelList)){
-		this.Edges = myETupelList;
-	}
+	if(!$.isEmptyObject(myTargetVertex)){
+		this.TargetVertex = myTargetVertex;
+	}	
 	
 };
+
+SingleEdge.prototype = {
+	getName: function(){
+		return this.Name;
+	},
+	getProperties: function(){
+		return this.Properties;
+	},
+	getTargetVertex: function(){
+		return this.TargetVertex;
+	}
+};
+
+function Vertex(myPropertyList, myBinaryPropertyList, myEdges){
+
+	if (!$.isEmptyObject(myPropertyList)) {
+		this.Properties = myPropertyList;
+	}
+	if (!$.isEmptyObject(myBinaryPropertyList)) {
+		this.BinaryProperties = myBinaryPropertyList;
+	}
+	if (!$.isEmptyObject(myEdges)) {
+		this.Edges = myEdges;
+	}
+};
+
 Vertex.prototype = {
 	getProperties: function(){
 		return this.Properties;
@@ -342,7 +391,7 @@ Vertex.prototype = {
 		});
 		return found; 		
 	},
-	getProperty: function(myProperty){
+	getPropertyByID: function(myProperty){
 		var proper = undefined;
 		if (this.hasProperty(myProperty)) {
 		
@@ -369,23 +418,23 @@ Vertex.prototype = {
 	hasEdge: function(myEdge){
 		var found = false;
 		$(this.Edges).each(function(){
-			if (this.Name == myEdge) {
+			if (this.getName() == myEdge) {
 				found = true;
 			}
 		});
 		return found;
 	},
-	getEdge: function(myEdge){
+	getEdgeByName: function(myEdge){
 		var edge = undefined;
 		if (this.hasEdge(myEdge)) {
 		
 			$(this.Edges).each(function(){
 				if (this.Name == myProperty) {
-					edge = this
+					return this;
 				}
 			});
 		}
-		return edge;
+		return undefined;
 	},
 	hasBinaryProperty: function(myBinaryProperty){
 		var found = false;
@@ -396,7 +445,7 @@ Vertex.prototype = {
 		});
 		return found;
 	},
-	getBinaryProperty: function(myBinaryProperty){
+	getBinaryPropertybyID: function(myBinaryProperty){
 		var binprop = undefined;
 		if (this.hasBinaryProperty(myBinaryProperty)) {
 			$(this.BinaryProperties).each(function(){
@@ -406,6 +455,31 @@ Vertex.prototype = {
 			});
 		}
 		return binprop;
+	},
+	getBinaryProperties: function(){
+		return this.BinaryProperties;
+	},
+	getAllSingleEdges: function(){
+		var payload = new Array();
+		k = 0;
+		$(this.Edges).each(function(){
+			if(this.type == "SingleEdge"){
+				payload[k] = this;
+				k++
+			}
+		});
+		return payload;
+	},
+	getAllHyperEdges: function(){
+		var payload = new Array();
+		k = 0;
+		$(this.Edges).each(function(){
+			if(this.type == "HyperEdge"){
+				payload[k] = this;
+				k++
+			}
+		});
+		return payload;
 	}
 };
 
