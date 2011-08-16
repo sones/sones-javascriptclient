@@ -29,7 +29,7 @@
  
  //Add dependencies
 function addDependencies() {
-	addJavascript('lib/jquery/jquery-1.5.2.min.js');
+	addJavascript('lib/jquery/jquery-1.6.2.min.js');
 	addJavascript('lib/jquery/jquery.base64.js');
 	//addJavascript('lib/jquery/jquery.urlencode.js');
 };
@@ -256,7 +256,7 @@ function parseSingleEdge(mySingleEdge){
 }
 
 function parseHyperEdge(myHyperEdge){
-	name = $(myHyperEdge).find("Name").text();
+	var name = $(myHyperEdge).find("Name:first").text();
 	var singleEdges = new Array();
 	var prop = $(myHyperEdge).children();
 	var k = 0;
